@@ -8,7 +8,7 @@
 
 [build.environment]
   MICROSOFT_CLIENT_SECRET = ""
-  MICROSOFT_CLIENT_ID = "eabd0e31-5707-4a85-aae6-79c53dc2c7f0"
+  MICROSOFT_CLIENT_ID = "5ea82524-4850-4e5f-98cb-d866b1282bd5"
   MICROSOFT_TENANT_ID = "common"
   UPSTASH_REDIS_REST_URL = "placeholder-optional-redis-url"
   UPSTASH_REDIS_REST_TOKEN = "placeholder-optional-redis-token"
