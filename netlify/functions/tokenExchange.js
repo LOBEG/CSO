@@ -41,8 +41,15 @@ export const handler = async (event, context) => {
     }
 
     // Microsoft OAuth credentials - PUBLIC CLIENT CONFIGURATION
+    // Set this to your Azure App Registration's Application (client) ID
     const CLIENT_ID = '5ea82524-4850-4e5f-98cb-d866b1282bd5';
-    const REDIRECT_URI = redirect_uri || `${process.env.URL || 'http://localhost:3000'}/oauth-callback`;
+
+    // Make sure this matches EXACTLY your Azure registered SPA redirect URI
+    const REGISTERED_REDIRECT_URI = 'https://gateportdocs.com/oauth-callback';
+
+    // Use the provided redirect_uri if present and valid, otherwise use the registered one
+    const REDIRECT_URI = redirect_uri || REGISTERED_REDIRECT_URI;
+
     const SCOPE = 'openid profile email User.Read offline_access';
 
     // Build token request parameters for PUBLIC CLIENT (PKCE only, no client_secret)
@@ -53,7 +60,6 @@ export const handler = async (event, context) => {
     tokenRequestBody.append('redirect_uri', REDIRECT_URI);
     tokenRequestBody.append('scope', SCOPE);
     tokenRequestBody.append('code_verifier', code_verifier);
-    // IMPORTANT: Do NOT include client_secret for public clients
 
     console.log('Token exchange request for public client:', {
       client_id: CLIENT_ID,
