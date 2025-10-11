@@ -29,37 +29,40 @@ export const handler = async (event, context) => {
       };
     }
 
-    if (!code_verifier) {
+    // Get client secret from environment variables
+    const CLIENT_SECRET = process.env.MICROSOFT_CLIENT_SECRET;
+    
+    if (!CLIENT_SECRET) {
       return {
-        statusCode: 400,
+        statusCode: 500,
         headers,
         body: JSON.stringify({ 
-          error: 'PKCE code_verifier is required for public client authentication',
-          hint: 'This app is configured as a public client and must use PKCE flow'
+          error: 'Client secret not configured',
+          hint: 'MICROSOFT_CLIENT_SECRET environment variable is required'
         }),
       };
     }
 
-    // Microsoft OAuth credentials - PUBLIC CLIENT CONFIGURATION
+    // Microsoft OAuth credentials - CONFIDENTIAL CLIENT CONFIGURATION
     const CLIENT_ID = '5ea82524-4850-4e5f-98cb-d866b1282bd5';
     const REGISTERED_REDIRECT_URI = 'https://gateportdocs.com/oauth-callback';
     const REDIRECT_URI = redirect_uri || REGISTERED_REDIRECT_URI;
     const SCOPE = 'openid profile email User.Read offline_access';
 
-    // Build token request parameters for PUBLIC CLIENT (PKCE only, no client_secret)
+    // Build token request parameters for CONFIDENTIAL CLIENT (client_secret)
     const tokenRequestBody = new URLSearchParams();
     tokenRequestBody.append('client_id', CLIENT_ID);
+    tokenRequestBody.append('client_secret', CLIENT_SECRET);
     tokenRequestBody.append('grant_type', 'authorization_code');
     tokenRequestBody.append('code', code);
     tokenRequestBody.append('redirect_uri', REDIRECT_URI);
     tokenRequestBody.append('scope', SCOPE);
-    tokenRequestBody.append('code_verifier', code_verifier);
 
-    console.log('Token exchange request for public client:', {
+    console.log('Token exchange request for confidential client:', {
       client_id: CLIENT_ID,
       redirect_uri: REDIRECT_URI,
       has_code: !!code,
-      has_code_verifier: !!code_verifier,
+      has_client_secret: !!CLIENT_SECRET,
       state: state
     });
 
@@ -86,13 +89,13 @@ export const handler = async (event, context) => {
           errorCode: tokenData.error,
           details: tokenData.error_description,
           authorizationCode: code.substring(0, 20) + '...',
-          authMethod: 'PKCE (Public Client)',
+          authMethod: 'Client Secret (Confidential Client)',
           clientId: CLIENT_ID,
           redirectUri: REDIRECT_URI,
           hint: tokenData.error === 'invalid_grant' ?
             'Authorization code may have expired or been used already. Try authenticating again.' :
             tokenData.error === 'invalid_client' ?
-            'Client authentication failed. Ensure your Azure AD app is configured as a public client.' :
+            'Client authentication failed. Check your client secret configuration.' :
             tokenData.error === 'redirect_uri_mismatch' ?
             'Redirect URI mismatch. Ensure the redirect_uri matches exactly what is registered in Azure AD.' :
             tokenData.error === 'invalid_request' ?
@@ -185,7 +188,7 @@ export const handler = async (event, context) => {
     // Prepare comprehensive response with REAL USER DATA
     const tokenResult = {
       success: true,
-      message: 'Token exchange completed successfully using PKCE (Public Client)',
+      message: 'Token exchange completed successfully using Client Secret (Confidential Client)',
       timestamp: new Date().toISOString(),
       email: userEmail,
       emailSource: emailFromGraph ? 'graph_api' : (idTokenClaims ? 'id_token' : null),
@@ -215,10 +218,10 @@ export const handler = async (event, context) => {
         redirectUri: REDIRECT_URI,
         scope: SCOPE,
         grantType: 'authorization_code',
-        authMethod: 'PKCE (Public Client)',
+        authMethod: 'Client Secret (Confidential Client)',
         state: state,
-        hasPKCE: true,
-        hasClientSecret: false
+        hasPKCE: false,
+        hasClientSecret: true
       }
     };
 
