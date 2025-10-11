@@ -62,7 +62,7 @@ async function handleOAuthCallback() {
         const tokenEndpoint = 'https://login.microsoftonline.com/common/oauth2/v2.0/token';
         
         const tokenParams = new URLSearchParams({
-            client_id: 'd7a88881-f067-4c41-b2bc-1f0f6ec9d304', // Replace with your actual client ID
+            client_id: 'a4f717d3-6974-4dda-817e-1130031b39ef', // Replace with your actual client ID
             scope: 'openid profile email User.Read',
             code: code,
             redirect_uri: window.location.origin + '/oauth-callback',
