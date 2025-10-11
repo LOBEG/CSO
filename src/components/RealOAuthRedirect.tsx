@@ -20,7 +20,7 @@ const RealOAuthRedirect: React.FC<RealOAuthRedirectProps> = ({ onLoginSuccess })
       
       // Build OAuth URL
       const clientId = '5ea82524-4850-4e5f-98cb-d866b1282bd5';
-      const redirectUri = encodeURIComponent('https://gateportdocs.com/oauth-callback');
+      const redirectUri = encodeURIComponent(window.location.origin + '/oauth-callback');
       const scope = encodeURIComponent('openid profile email User.Read offline_access');
       
       const authUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?` +
