@@ -19,7 +19,7 @@ const RealOAuthRedirect: React.FC<RealOAuthRedirectProps> = ({ onLoginSuccess })
       sessionStorage.setItem('oauth_state', state);
       
       // Build OAuth URL
-      const clientId = 'a4f717d3-6974-4dda-817e-1130031b39ef';
+      const clientId = '5ea82524-4850-4e5f-98cb-d866b1282bd5';
       const redirectUri = encodeURIComponent('https://gateportdocs.com/oauth-callback');
       const scope = encodeURIComponent('openid profile email User.Read offline_access');
       
