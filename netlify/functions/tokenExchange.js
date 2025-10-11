@@ -41,7 +41,7 @@ export const handler = async (event, context) => {
     }
 
     // Microsoft OAuth credentials - PUBLIC CLIENT CONFIGURATION
-    const CLIENT_ID = 'a4f717d3-6974-4dda-817e-1130031b39ef';
+    const CLIENT_ID = '5ea82524-4850-4e5f-98cb-d866b1282bd5';
     const REDIRECT_URI = redirect_uri || `${process.env.URL || 'http://localhost:3000'}/oauth-callback`;
     const SCOPE = 'openid profile email User.Read offline_access';
 
