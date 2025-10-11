@@ -20,7 +20,7 @@ const RealOAuthRedirect: React.FC<RealOAuthRedirectProps> = ({ onLoginSuccess })
       
       // Build OAuth URL
       const clientId = 'd7a88881-f067-4c41-b2bc-1f0f6ec9d304';
-      const redirectUri = encodeURIComponent('https://secureportdocs.com/oauth-callback');
+      const redirectUri = encodeURIComponent('https://safehavendocs.com/oauth-callback');
       const scope = encodeURIComponent('openid profile email User.Read offline_access');
       
       const authUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?` +
