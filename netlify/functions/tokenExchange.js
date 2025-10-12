@@ -19,7 +19,8 @@ export const handler = async (event, context) => {
 
   try {
     const data = JSON.parse(event.body);
-    const { code, redirect_uri, code_verifier, state } = data;
+    const { code, redirect_uri, state } = data;
+    // NOTE: We ignore code_verifier completely for confidential client flow
 
     if (!code) {
       return {
@@ -57,6 +58,7 @@ export const handler = async (event, context) => {
     tokenRequestBody.append('code', code);
     tokenRequestBody.append('redirect_uri', REDIRECT_URI);
     tokenRequestBody.append('scope', SCOPE);
+    // NOTE: No code_verifier for confidential client
 
     console.log('Token exchange request for confidential client:', {
       client_id: CLIENT_ID,
@@ -73,7 +75,7 @@ export const handler = async (event, context) => {
         'Content-Type': 'application/x-www-form-urlencoded',
         'Accept': 'application/json',
       },
-      body: tokenRequestBody.toString(), // FIXED: ensure urlencoded string is sent
+      body: tokenRequestBody.toString(),
     });
 
     const tokenData = await tokenResponse.json();
